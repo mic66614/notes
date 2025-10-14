@@ -1,0 +1,98 @@
+Activity相关
+
+1. Activity 生命周期
+初始化：onCrerate
+可见：onStart
+获得焦点可交互：onResume
+失去焦点，但可见：onPause
+不可见  停止：onStop
+销毁：onDestory
+
+重新打开：onRestart -> onStart -> onResume
+
+
+2. onStart 和 onResume 的区别
+onStart是可见，onResume 是获得焦点，可以交互。
+Activity 被对话框遮挡时会从 onResume 回退到 onPause 而不是onStop
+
+
+3. Activity 什么时候会执行 onRestart
+从停止状态（onStop）重新回到前台，如 home 键返回再重新进入页面，或被其他Activity遮挡后重新显示。
+
+
+4.如何在 Activity 被销毁前存储数据，onSaveInstanceState 和 onPause 有什么区别
+a. 使用 onSaveInstanceState(Bundle outState) 方法：在 Activity 即将被销毁时，系统会调用 onSaveInstanceState 方法。可以在这个方法中将需要保存的数据存储到 Bundle 对象中。这个 Bundle 对象会在Activity被重新创建时传递给 onCreate 方法和 onRestoreInstanceState 方法。
+
+b.使用 SharedPreferences
+
+c.数据库
+
+onSaveInstanceState 在Activity 即将被销毁时，系统会调用 用其保存临时数据，适合轻量数据。
+onPause 是 Activity 失去焦点时调用，无论是否销毁只要失去焦点都会执行。
+
+
+5. Activity的四种启动模式
+a. Standard（标准模式）：默认的启动模式。每次启动一个 Activity，都会创建一个新的实例，不管这个 Activity 是否已经存在。
+b. SingleTop（单顶模式）：如果要启动的 Activity 已经位于栈顶，那么不会创建新的实例，而是直接使用已存在的实例。如果不在栈顶，则会创建新的实例。
+c. SingleTask（单任务模式）：系统会在一个新的任务栈中创建这个 Activity 的实例，并且这个任务栈中只有这一个 Activity 实例。如果要启动的 Activity 已经存在于其他任务栈中，系统会将该任务栈调到前台，并且销毁该Activity上面的所有 Activity 实例。
+d. SingleInstance（单实例模式）：类似于 SingleTask，但是 SingleInstance 式的 Activity 实例会独占一个任务栈，不会与其他 Activity 实例共存于同一个任务栈中。
+
+可以通过在 AndroidManifest.xml 文件中的 <activity> 标签中设置 android:launchMode 属性来指定 Activity 的启动模式。
+
+
+6.如何通过 Intent 传递数据给另一个 Activity，如何返回数据
+通过 intent.putExtra 传递数据。
+主 Activity 通过 startActivityForResult 启动目标 Activity，目标 Activity 通过 setResult 设置返回值，主 Activity 通过 onActivityResult 方法检查请求码和结果码，获取返回的数据。
+
+
+7.什么是 Activity 栈，系统如何管理多个Activity的栈结构
+Activity 栈（Task）是管理 Activity 的一种数据结构。
+启动 Activity 时入栈，按返回键或者执行 finish 方法时出栈，默认一个应用对应一个栈，可以通过 TaskAffinity 属性指定不同栈。
+
+
+8. Activity 与Fragment 的生命周期有何关联
+Fragment 生命周期包括 onAttach、onCreate、onCreateView、onActivityCreated、onStart、onResume、onPause、onStop、onDestroyView、onDestroy和onDetach
+当一个 Fragment 被添加到 Activity 中时，它的生命周期会受到 Activity 的生命周期影响。当 Activity 调用 onCreate 方法时，会依次调用 Fragment 的 onAttach、onCreate 和 onCreateView 方法。当Activity 调用 onStart 方法时，会依次调用 Fragment 的 onStart 方法；当 Activity 调用 onResume 方法时，会依次调用 Fragment 的 onResume 方法。
+
+
+9.如何避免屏幕旋转导致的 Activity 重建问题
+在 Manifest 中配置 android:configChanges = "orientation|screenSize" （告诉系统不要重建 Activity，而是调用 onConfigurationChanged 方法。） ,让系统不重建 Activity；或用 viewModel 保存数据，使生命周期独立于 Activity。
+
+
+10.什么是 TaskAffinity，它如何影响 Activity 的栈管理
+TaskAffinity 是 Activity 的一个属性，默认与应用包名一致。如果Activity 的 TaskAffinity 属性与其所在任务栈的 TaskAffinity 属性不同，该 Activity 将被放入指定的任务栈中。
+
+
+Service相关
+11. Service 和 Thread 的本质区别是什么
+Service 是一种在操作系统中运行的后台进程，Thread （线程）是程序执行的最小单位，它是进程中的一个实体，负责执行程序中的指令，一个进程可以包含多个线程。
+Service 本身不实现多线程，需要在内部创建 Thread
+
+
+12. startService 与 bindService 两种启动方式的生命周期有何不同
+startService 启动后生命周期为 onCreate -> onStartCommand -> onDestory ,需显示停止，即使启动服务的组件（如 Activity）被销毁，服务仍然会继续运行。
+bindService 则是 onCreate -> onBind -> onUnbind ->onDestory，随绑定组件生命周期结束而销毁，支持双向通信。
+
+
+13.如何保证 Service 在后台被杀死后能自动重启
+在 onStartCommand 返回 START_STICKY 或 START_REDELIVER_INTENT ，系统会在内存充足时重启 Service；或使用前台服务，通过通知提升优先级。或在服务的 onDestory 方法中设置一个定时任务。
+
+
+14. 前台服务和普通服务有什么区别
+前台服务必须显示通知，优先级高（不易被杀死），用于用户可感知的后台任务（如音乐播放）；普通服务优先级低，系统内存不足时可能被回收。
+
+
+15. IntentService 的特点是什么
+IntentService 是 Service 的子类，内部有工作线程处理任务，任务完成后自动停止，无需手动管理线程和生命周期，适合一次性后台任务（如下载单个文件）。
+
+
+16. Service 的 onStartCommand 方法，返回值有哪些类型
+START_STICKY（重启后不保留 Intent）、START_NOT_STICKY（不自动重启）、START_REDELIVER_INTENT（重启后重发 Intent）。
+
+
+17.如何在 Service 和 Activity 之间进行双向通信
+a.使用绑定 Service （bindService） 和回调接口
+b.使用 Messenger 
+c.使用 BroadcastReceiver（广播）
+d.使用 LiveData 和 ViewModel
+
